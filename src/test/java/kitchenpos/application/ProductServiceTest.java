@@ -35,15 +35,13 @@ class ProductServiceTest {
 
     @DisplayName("상품 저장 - 성공")
     @CustomParameterizedTest
-    @CsvSource(value = {"후라이드치킨, 16000", "후라이드치킨, 16000", "간장치킨, 17000"}, delimiter = ',')
+    @CsvSource(value = {"후라이드치킨, 16000.00", "후라이드치킨, 16000.00", "간장치킨, 17000.00"}, delimiter = ',')
     void create(@AggregateWith(ProductAggregator.class) Product expect) {
         //given
         //when
         final Product actual = productService.create(expect);
         //then
-        assertThat(actual.getId()).isNotNull();
-        assertThat(actual.getName()).isEqualTo(expect.getName());
-        assertThat(actual.getPrice()).isCloseTo(expect.getPrice(), Percentage.withPercentage(0));
+        assertThat(actual).usingRecursiveComparison().ignoringFields("id").isEqualTo(expect);
     }
 
     @DisplayName("상품 저장 - 실패 - 상품이 가격이 null")
@@ -94,7 +92,7 @@ class ProductServiceTest {
         public Object aggregateArguments(ArgumentsAccessor accessor, ParameterContext context) throws ArgumentsAggregationException {
             final Product product = new Product();
             product.setName(accessor.getString(0));
-            product.setPrice(BigDecimal.valueOf(accessor.getLong(1)));
+            product.setPrice(new BigDecimal(accessor.getString(1)));
             return product;
         }
     }

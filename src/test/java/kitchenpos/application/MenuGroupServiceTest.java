@@ -32,8 +32,7 @@ class MenuGroupServiceTest {
         //when
         final MenuGroup actual = menuGroupService.create(expect);
         //then
-        assertThat(actual.getId()).isNotNull();
-        assertThat(actual.getName()).isEqualTo(expect.getName());
+        assertThat(actual).usingRecursiveComparison().ignoringFields("id").isEqualTo(expect);
     }
 
     @DisplayName("메뉴그룹 조회 - 전체 메뉴그룹 조회")

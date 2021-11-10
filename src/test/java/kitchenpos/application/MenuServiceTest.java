@@ -53,9 +53,7 @@ class MenuServiceTest {
         //when
         final Menu actual = menuService.create(menu);
         //then
-        assertThat(actual.getId()).isNotNull();
-        assertThat(actual.getName()).isEqualTo(menu.getName());
-        assertThat(actual.getMenuGroupId()).isEqualTo(menu.getMenuGroupId());
+        assertThat(actual).usingRecursiveComparison().ignoringFields("id", "menuProducts.seq").isEqualTo(menu);
     }
 
     @DisplayName("메뉴 저장 - 실패 - 메뉴의 가격이 null")
