@@ -1,3 +1,4 @@
+/*
 package kitchenpos.dao;
 
 import kitchenpos.domain.TableGroup;
@@ -68,3 +69,4 @@ public class JdbcTemplateTableGroupDao implements TableGroupDao {
         return entity;
     }
 }
+*/

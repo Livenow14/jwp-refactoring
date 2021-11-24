@@ -1,3 +1,4 @@
+/*
 package kitchenpos.dao;
 
 import kitchenpos.domain.OrderLineItem;
@@ -77,3 +78,4 @@ public class JdbcTemplateOrderLineItemDao implements OrderLineItemDao {
         return entity;
     }
 }
+*/

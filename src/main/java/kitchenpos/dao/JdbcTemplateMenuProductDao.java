@@ -1,3 +1,4 @@
+/*
 package kitchenpos.dao;
 
 import kitchenpos.domain.MenuProduct;
@@ -77,3 +78,4 @@ public class JdbcTemplateMenuProductDao implements MenuProductDao {
         return entity;
     }
 }
+*/

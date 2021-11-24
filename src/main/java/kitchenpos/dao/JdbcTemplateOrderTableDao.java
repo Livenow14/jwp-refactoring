@@ -1,3 +1,4 @@
+/*
 package kitchenpos.dao;
 
 import kitchenpos.domain.OrderTable;
@@ -102,3 +103,4 @@ public class JdbcTemplateOrderTableDao implements OrderTableDao {
         return entity;
     }
 }
+*/

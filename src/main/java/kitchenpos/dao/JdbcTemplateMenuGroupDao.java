@@ -1,3 +1,4 @@
+/*
 package kitchenpos.dao;
 
 import kitchenpos.domain.MenuGroup;
@@ -75,3 +76,4 @@ public class JdbcTemplateMenuGroupDao implements MenuGroupDao {
         return entity;
     }
 }
+*/
