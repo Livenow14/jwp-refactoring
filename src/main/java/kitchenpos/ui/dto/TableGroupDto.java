@@ -15,6 +15,10 @@ public class TableGroupDto {
     protected TableGroupDto() {
     }
 
+    public TableGroupDto(List<OrderTableDto> orderTables) {
+        this(null, null, orderTables);
+    }
+
     public TableGroupDto(Long id, LocalDateTime createdDate, List<OrderTableDto> orderTables) {
         this.id = id;
         this.createdDate = createdDate;

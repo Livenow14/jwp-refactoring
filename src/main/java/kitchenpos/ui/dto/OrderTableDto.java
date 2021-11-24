@@ -12,6 +12,18 @@ public class OrderTableDto {
     protected OrderTableDto() {
     }
 
+    public OrderTableDto(Long id) {
+        this(id, null, 0, false);
+    }
+
+    public OrderTableDto(int numberOfGuests) {
+        this(null, null, numberOfGuests, false);
+    }
+
+    public OrderTableDto(boolean empty) {
+        this(null, null, 0, empty);
+    }
+
     public OrderTableDto(Long id, Long tableGroupId, int numberOfGuests, boolean empty) {
         this.id = id;
         this.tableGroupId = tableGroupId;

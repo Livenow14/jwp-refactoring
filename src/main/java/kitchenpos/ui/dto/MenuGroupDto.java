@@ -10,6 +10,10 @@ public class MenuGroupDto {
     protected MenuGroupDto() {
     }
 
+    public MenuGroupDto(String name) {
+        this(null, name);
+    }
+
     public MenuGroupDto(Long id, String name) {
         this.id = id;
         this.name = name;

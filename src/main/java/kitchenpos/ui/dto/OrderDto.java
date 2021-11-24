@@ -18,6 +18,14 @@ public class OrderDto {
     protected OrderDto() {
     }
 
+    public OrderDto(OrderStatus orderStatus) {
+        this(null, null, orderStatus, null, null);
+    }
+
+    public OrderDto(Long orderTableId, List<OrderLineItemDto> orderLineItems) {
+        this(null, orderTableId, null, null, orderLineItems);
+    }
+
     public OrderDto(Long id, Long orderTableId, OrderStatus orderStatus, LocalDateTime orderedTime, List<OrderLineItemDto> orderLineItems) {
         this.id = id;
         this.orderTableId = orderTableId;

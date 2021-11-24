@@ -12,6 +12,10 @@ public class OrderLineItemDto {
     protected OrderLineItemDto() {
     }
 
+    public OrderLineItemDto(Long menuId, long quantity) {
+        this(null, null, menuId, quantity);
+    }
+
     public OrderLineItemDto(Long seq, Long orderId, Long menuId, long quantity) {
         this.seq = seq;
         this.orderId = orderId;

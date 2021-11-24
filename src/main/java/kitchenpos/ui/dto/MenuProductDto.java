@@ -13,6 +13,10 @@ public class MenuProductDto {
     protected MenuProductDto() {
     }
 
+    public MenuProductDto(Long productId, Long quantity) {
+        this(null, null, productId, quantity);
+    }
+
     public MenuProductDto(Long seq, Long menuId, Long productId, Long quantity) {
         this.seq = seq;
         this.menuId = menuId;

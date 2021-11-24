@@ -1,13 +1,13 @@
 package kitchenpos.ui;
 
-import kitchenpos.domain.Product;
-import kitchenpos.fixture.ProductFixture;
+import kitchenpos.ui.dto.ProductDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -22,31 +22,39 @@ class ProductRestControllerTest extends ApiDocument {
     @Test
     void product_create() throws Exception {
         //given
-        final Product product = new Product();
-        product.setName("강정치킨");
-        product.setPrice(new BigDecimal(17000));
+        ProductDto requestProductDto = new ProductDto("강정치킨", new BigDecimal(17000));
+        ProductDto expected = new ProductDto(1L, "강정치킨", new BigDecimal(17000));
         //when
-        willReturn(ProductFixture.강정치킨).given(productService).create(any(Product.class));
-        final ResultActions result = 상품_저장_요청(product);
+        willReturn(expected).given(productService).create(any(ProductDto.class));
+        final ResultActions result = 상품_저장_요청(requestProductDto);
         //then
-        상품_저장_성공함(result, ProductFixture.강정치킨);
+        상품_저장_성공함(result, expected);
     }
 
     @DisplayName("상품 조회 - 성공")
     @Test
     void product_findAll() throws Exception {
         //given
+        List<ProductDto> expected = Arrays.asList(
+                new ProductDto(1L, "후라이드", new BigDecimal(16000)),
+                new ProductDto(2L, "양념치킨", new BigDecimal(16000)),
+                new ProductDto(3L, "반반치킨", new BigDecimal(16000)),
+                new ProductDto(4L, "통구이", new BigDecimal(17000)),
+                new ProductDto(5L, "간장치킨", new BigDecimal(17000)),
+                new ProductDto(6L, "순살치킨", new BigDecimal(17000)),
+                new ProductDto(7L, "강정치킨", new BigDecimal(17000))
+        );
         //when
-        willReturn(ProductFixture.products()).given(productService).list();
+        willReturn(expected).given(productService).list();
         final ResultActions result = 상품_조회_요청();
         //then
-        상품_조회_성공함(result, ProductFixture.products());
+        상품_조회_성공함(result, expected);
     }
 
-    private ResultActions 상품_저장_요청(Product product) throws Exception {
+    private ResultActions 상품_저장_요청(ProductDto productDto) throws Exception {
         return mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(product))
+                .content(toJson(productDto))
         );
     }
 
@@ -56,16 +64,16 @@ class ProductRestControllerTest extends ApiDocument {
         );
     }
 
-    private void 상품_저장_성공함(ResultActions result, Product product) throws Exception {
+    private void 상품_저장_성공함(ResultActions result, ProductDto productDto) throws Exception {
         result.andExpect(status().isCreated())
-                .andExpect(content().json(toJson(product)))
-                .andExpect(header().string("Location", "/api/products/" + product.getId()))
+                .andExpect(content().json(toJson(productDto)))
+                .andExpect(header().string("Location", "/api/products/" + productDto.getId()))
                 .andDo(toDocument("product-create"));
     }
 
-    private void 상품_조회_성공함(ResultActions result, List<Product> products) throws Exception {
+    private void 상품_조회_성공함(ResultActions result, List<ProductDto> productDtos) throws Exception {
         result.andExpect(status().isOk())
-                .andExpect(content().json(toJson(products)))
+                .andExpect(content().json(toJson(productDtos)))
                 .andDo(toDocument("product-findAll"));
     }
 }

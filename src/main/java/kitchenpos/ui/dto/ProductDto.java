@@ -12,6 +12,10 @@ public class ProductDto {
     protected ProductDto() {
     }
 
+    public ProductDto(String name, BigDecimal price) {
+        this(null, name, price);
+    }
+
     public ProductDto(Long id, String name, BigDecimal price) {
         this.id = id;
         this.name = name;

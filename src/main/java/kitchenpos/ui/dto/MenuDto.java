@@ -18,6 +18,10 @@ public class MenuDto {
     protected MenuDto() {
     }
 
+    public MenuDto(String name, BigDecimal price, Long menuGroupId, List<MenuProductDto> menuProducts) {
+        this(null, name, price, menuGroupId, menuProducts);
+    }
+
     public MenuDto(Long id, String name, BigDecimal price, Long menuGroupId, List<MenuProductDto> menuProducts) {
         this.id = id;
         this.name = name;

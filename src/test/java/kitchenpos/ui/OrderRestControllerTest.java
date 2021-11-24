@@ -1,14 +1,14 @@
 package kitchenpos.ui;
 
-import kitchenpos.domain.Order;
 import kitchenpos.domain.OrderStatus;
-import kitchenpos.fixture.OrderFixture;
-import kitchenpos.fixture.OrderLineItemFixture;
+import kitchenpos.ui.dto.OrderDto;
+import kitchenpos.ui.dto.OrderLineItemDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,46 +24,48 @@ class OrderRestControllerTest extends ApiDocument {
     @Test
     void order_create() throws Exception {
         //given
-        final Order order = new Order();
-        order.setOrderTableId(1L);
-        order.setOrderLineItems(Collections.singletonList(OrderLineItemFixture.FIRST_FIRST_ORDERLINE_NO_SEQ_NO_ORDER));
+        OrderDto requestOrderDto = new OrderDto(1L, Collections.singletonList(new OrderLineItemDto(1L, 1L)));
+        OrderDto expected = new OrderDto(1L, 1L, OrderStatus.COOKING, LocalDateTime.now(), Collections.singletonList(new OrderLineItemDto(1L, 1L, 1L, 1L)));
         //when
-        willReturn(OrderFixture.FIRST_TABLE_후라이드치킨_하나).given(orderService).create(any(Order.class));
-        final ResultActions result = 주문_저장_요청(order);
+        willReturn(expected).given(orderService).create(any(OrderDto.class));
+        final ResultActions result = 주문_저장_요청(requestOrderDto);
         //then
-        주문_저장_성공함(result, OrderFixture.FIRST_TABLE_후라이드치킨_하나);
+        주문_저장_성공함(result, expected);
     }
 
     @DisplayName("주문 조회 - 성공")
     @Test
     void order_findAll() throws Exception {
         //given
+        List<OrderDto> expected = Collections.singletonList(
+                new OrderDto(1L, 1L, OrderStatus.COOKING, LocalDateTime.now(),
+                        Collections.singletonList(new OrderLineItemDto(1L, 1L, 1L, 1L))
+                )
+        );
         //when
-        willReturn(OrderFixture.orders()).given(orderService).list();
+        willReturn(expected).given(orderService).list();
         final ResultActions result = 주문_조회_요청();
         //then
-        주문_조회_성공함(result, OrderFixture.orders());
+        주문_조회_성공함(result, expected);
     }
 
     @DisplayName("주문 상태 변경 - 성공")
     @Test
     void order_change_order_status() throws Exception {
         //given
-        final Order requestOrder = new Order();
-        requestOrder.setOrderStatus(OrderStatus.COMPLETION.name());
-        final Order responseOrder = OrderFixture.FIRST_TABLE_후라이드치킨_하나_COMPLETION;
+        OrderDto requestOrderDto = new OrderDto(OrderStatus.COMPLETION);
+        OrderDto expected = new OrderDto(1L, 1L, OrderStatus.COMPLETION, LocalDateTime.now(), Collections.singletonList(new OrderLineItemDto(1L, 1L, 1L, 1L)));
         //when
-        willReturn(responseOrder).given(orderService)
-                .changeOrderStatus(anyLong(), any(Order.class));
-        final ResultActions result = 주문_상태_변경_요청(OrderFixture.FIRST_TABLE_후라이드치킨_하나.getId(), requestOrder);
+        willReturn(expected).given(orderService).changeOrderStatus(anyLong(), any(OrderDto.class));
+        final ResultActions result = 주문_상태_변경_요청(1L, requestOrderDto);
         //then
-        주문_상태_변경_성공함(result, responseOrder);
+        주문_상태_변경_성공함(result, expected);
     }
 
-    private ResultActions 주문_저장_요청(Order order) throws Exception {
+    private ResultActions 주문_저장_요청(OrderDto orderDto) throws Exception {
         return mockMvc.perform(post("/api/orders")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(order))
+                .content(toJson(orderDto))
         );
     }
 
@@ -71,29 +73,29 @@ class OrderRestControllerTest extends ApiDocument {
         return mockMvc.perform(get("/api/orders"));
     }
 
-    private ResultActions 주문_상태_변경_요청(Long id, Order order) throws Exception {
+    private ResultActions 주문_상태_변경_요청(Long id, OrderDto orderDto) throws Exception {
         return mockMvc.perform(put("/api/orders/{orderId}/order-status", id)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(order))
+                .content(toJson(orderDto))
         );
     }
 
-    private void 주문_저장_성공함(ResultActions result, Order order) throws Exception {
+    private void 주문_저장_성공함(ResultActions result, OrderDto orderDto) throws Exception {
         result.andExpect(status().isCreated())
-                .andExpect(content().json(toJson(order)))
-                .andExpect(header().string("Location", "/api/orders/" + order.getId()))
+                .andExpect(content().json(toJson(orderDto)))
+                .andExpect(header().string("Location", "/api/orders/" + orderDto.getId()))
                 .andDo(toDocument("order-create"));
     }
 
-    private void 주문_조회_성공함(ResultActions result, List<Order> orders) throws Exception {
+    private void 주문_조회_성공함(ResultActions result, List<OrderDto> orderDtos) throws Exception {
         result.andExpect(status().isOk())
-                .andExpect(content().json(toJson(orders)))
+                .andExpect(content().json(toJson(orderDtos)))
                 .andDo(toDocument("order-findAll"));
     }
 
-    private void 주문_상태_변경_성공함(ResultActions result, Order order) throws Exception {
+    private void 주문_상태_변경_성공함(ResultActions result, OrderDto orderDto) throws Exception {
         result.andExpect(status().isOk())
-                .andExpect(content().json(toJson(order)))
+                .andExpect(content().json(toJson(orderDto)))
                 .andDo(toDocument("order-change-status"));
     }
 }
