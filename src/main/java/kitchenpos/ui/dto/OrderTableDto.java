@@ -33,6 +33,7 @@ public class OrderTableDto {
 
     public OrderTable toEntity() {
         OrderTable orderTable = new OrderTable();
+        orderTable.setId(id);
         orderTable.setNumberOfGuests(numberOfGuests);
         orderTable.setEmpty(empty);
         return orderTable;

@@ -12,7 +12,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT CASE WHEN COUNT(o) > 0 THEN TRUE ELSE FALSE END" +
             " FROM Order o WHERE o.orderTable.id IN :orderTableIds AND o.orderStatus IN :orderStatuses"
     )
-    boolean existsByOrderTableIdInAndOrderStatusIn(List<Long> orderTableIds, List<String> orderStatuses);
+    boolean existsByOrderTableIdInAndOrderStatusIn(List<Long> orderTableIds, List<OrderStatus> orderStatuses);
 
     @Query("SELECT CASE WHEN (COUNT(o) > 0) THEN TRUE ELSE FALSE END" +
             " FROM Order o WHERE o.orderTable.id IN :orderTableId AND o.orderStatus IN :orderStatuses")
