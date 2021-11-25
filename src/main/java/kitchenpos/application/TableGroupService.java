@@ -8,6 +8,8 @@ import kitchenpos.domain.OrderTable;
 import kitchenpos.domain.TableGroup;
 import kitchenpos.ui.dto.OrderTableDto;
 import kitchenpos.ui.dto.TableGroupDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TableGroupService {
+    private static final Logger log = LoggerFactory.getLogger(TableGroupService.class);
+
     private final OrderRepository orderRepository;
     private final OrderTableRepository orderTableRepository;
     private final TableGroupRepository tableGroupRepository;
@@ -37,6 +41,7 @@ public class TableGroupService {
                 .collect(Collectors.toList());
 
         if (CollectionUtils.isEmpty(orderTables) || orderTables.size() < 2) {
+            log.info("입력한 OrderTable이 없거나 사이즈가 2미만입니다.");
             throw new IllegalArgumentException();
         }
 
@@ -47,11 +52,13 @@ public class TableGroupService {
         final List<OrderTable> savedOrderTables = orderTableRepository.findAllById(orderTableIds);
 
         if (orderTables.size() != savedOrderTables.size()) {
+            log.info("저장된 주물테이블 수와 요청한 주문테이블의 수가 다릅니다.");
             throw new IllegalArgumentException();
         }
 
         for (final OrderTable savedOrderTable : savedOrderTables) {
             if (!savedOrderTable.isEmpty() || Objects.nonNull(savedOrderTable.getTableGroup())) {
+                log.info("주문테이블이 비어있지 않거나 이미 단체지정이 완료되어있습니다.");
                 throw new IllegalArgumentException();
             }
         }

@@ -45,17 +45,20 @@ public class MenuService {
             throw new IllegalArgumentException();
         }
 
-        if (!menuGroupRepository.existsById(menuDto.getMenuGroupId())) {
+        if (Objects.isNull(menuDto.getMenuGroupId()) || !menuGroupRepository.existsById(menuDto.getMenuGroupId())) {
             throw new IllegalArgumentException();
         }
 
         final List<MenuProductDto> menuProductDtos = menuDto.getMenuProducts();
 
         BigDecimal sum = BigDecimal.ZERO;
-        for (final MenuProductDto menuProduct : menuProductDtos) {
-            final Product product = productRepository.findById(menuProduct.getProductId())
+        for (final MenuProductDto menuProductDto : menuProductDtos) {
+            if (Objects.isNull(menuProductDto.getProductId())) {
+                throw new IllegalArgumentException();
+            }
+            final Product product = productRepository.findById(menuProductDto.getProductId())
                     .orElseThrow(IllegalArgumentException::new);
-            sum = sum.add(product.getPrice().multiply(BigDecimal.valueOf(menuProduct.getQuantity())));
+            sum = sum.add(product.getPrice().multiply(BigDecimal.valueOf(menuProductDto.getQuantity())));
         }
 
         if (price.compareTo(sum) > 0) {

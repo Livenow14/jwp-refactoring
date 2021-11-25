@@ -1,80 +1,40 @@
 package kitchenpos.application;
 
-import kitchenpos.dao.MenuDao;
-import kitchenpos.dao.OrderDao;
-import kitchenpos.dao.OrderLineItemDao;
-import kitchenpos.dao.OrderTableDao;
-import kitchenpos.domain.Order;
-import kitchenpos.domain.OrderLineItem;
 import kitchenpos.domain.OrderStatus;
-import kitchenpos.domain.OrderTable;
-import kitchenpos.fixture.MenuFixture;
-import kitchenpos.fixture.OrderFixture;
-import kitchenpos.fixture.OrderLineItemFixture;
-import kitchenpos.fixture.OrderTableFixture;
-import org.junit.jupiter.api.BeforeEach;
+import kitchenpos.ui.dto.OrderDto;
+import kitchenpos.ui.dto.OrderLineItemDto;
+import kitchenpos.ui.dto.OrderTableDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.BDDMockito.given;
 
 @DisplayName("Order 비즈니스 흐름 테스트")
 @Transactional
 @SpringBootTest
 class OrderServiceTest {
-    private static final LocalDateTime NOW = LocalDateTime.now();
-
     @Autowired
     private OrderService orderService;
+
     @Autowired
     private TableService tableService;
-    @Autowired
-    private MenuDao menuDao;
-    @Autowired
-    private OrderDao orderDao;
-    @Autowired
-    private OrderLineItemDao orderLineItemDao;
-    @Mock
-    private OrderTableDao orderTableDao;
-
-    private OrderTable orderTable;
-    private Order order;
-
-    @BeforeEach
-    void setUp() {
-        orderService = new OrderService(menuDao, orderDao, orderLineItemDao, orderTableDao);
-        orderTable = tableService.create(OrderTableFixture.TABLE_BEFORE_SAVE_EMPTY_FALSE);
-
-        final Order beforeSaveOrder = new Order();
-        beforeSaveOrder.setOrderTableId(orderTable.getId());
-        beforeSaveOrder.setOrderLineItems(Collections.singletonList(OrderLineItemFixture.FIRST_FIRST_ORDERLINE_NO_SEQ_NO_ORDER));
-
-        given(orderTableDao.findById(anyLong())).willReturn(Optional.of(orderTable));
-        order = orderService.create(beforeSaveOrder);
-    }
 
     @DisplayName("주문 저장 - 실패 - 주문항목이 비어있음")
     @Test
     void createFailureWhenOrderLinesEmpty() {
         //given
-        final Order order = new Order();
-        order.setOrderTableId(OrderTableFixture.FIRST.getId());
+        OrderDto expected = new OrderDto(1L, Collections.emptyList());
         //when
         //then
-        assertThatThrownBy(() -> orderService.create(order))
+        assertThatThrownBy(() -> orderService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -82,18 +42,14 @@ class OrderServiceTest {
     @Test
     void createFailureWhenMenusNotMatch() {
         //given
-        final OrderLineItem firedOrderLineItem = new OrderLineItem();
-        firedOrderLineItem.setMenuId(MenuFixture.후라이드치킨.getId());
-        firedOrderLineItem.setQuantity(1);
-        final OrderLineItem soyOrderLineItem = new OrderLineItem();
-        soyOrderLineItem.setMenuId(0L);
-        soyOrderLineItem.setQuantity(1);
-        final Order order = new Order();
-        order.setOrderTableId(orderTable.getId());
-        order.setOrderLineItems(Arrays.asList(firedOrderLineItem, soyOrderLineItem));
+        Long savedMenuId = 1L;
+        Long unSavedMenuId = 0L;
+        OrderDto expected = new OrderDto(1L,
+                Arrays.asList(new OrderLineItemDto(savedMenuId, 2L), new OrderLineItemDto(unSavedMenuId, 2L))
+        );
         //when
         //then
-        assertThatThrownBy(() -> orderService.create(order))
+        assertThatThrownBy(() -> orderService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -101,11 +57,10 @@ class OrderServiceTest {
     @Test
     void createFailureWhenOrderTableEmptyTrue() {
         //given
-        orderTable.setEmpty(true);
-        given(orderTableDao.findById(anyLong())).willReturn(Optional.of(orderTable));
+        OrderDto expected = new OrderDto(1L, Collections.singletonList(new OrderLineItemDto(1L, 1L)));
         //when
         //then
-        assertThatThrownBy(() -> orderService.create(order))
+        assertThatThrownBy(() -> orderService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -113,10 +68,10 @@ class OrderServiceTest {
     @Test
     void createFailureWhenOrderTableNotFOUNd() {
         //given
-        given(orderTableDao.findById(anyLong())).willReturn(Optional.empty());
+        OrderDto expected = new OrderDto(0L, Collections.singletonList(new OrderLineItemDto(1L, 1L)));
         //when
         //then
-        assertThatThrownBy(() -> orderService.create(order))
+        assertThatThrownBy(() -> orderService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -124,13 +79,15 @@ class OrderServiceTest {
     @Test
     void findAll() {
         //given
+        OrderTableDto expectedOrderTable = tableService.create(new OrderTableDto(false));
+        OrderDto expected = orderService.create(new OrderDto(expectedOrderTable.getId(), Collections.singletonList(new OrderLineItemDto(1L, 1L))));
         //when
-        final List<Order> actual = orderService.list();
+        final List<OrderDto> actual = orderService.list();
         //then
         assertThat(actual).hasSize(1);
-        assertThat(actual).extracting(Order::getId)
-                .contains(order.getId());
-        assertThat(actual).flatExtracting(Order::getOrderLineItems)
+        assertThat(actual).extracting(OrderDto::getId)
+                .contains(expected.getId());
+        assertThat(actual).flatExtracting(OrderDto::getOrderLineItems)
                 .isNotEmpty();
     }
 
@@ -138,15 +95,14 @@ class OrderServiceTest {
     @Test
     void changeOrderStatus() {
         //given
-        final OrderTable orderTable = new OrderTable();
-        orderTable.setId(order.getOrderTableId());
-        orderTable.setEmpty(false);
-        given(orderTableDao.findById(anyLong())).willReturn(Optional.of(orderTable));
+        OrderTableDto expectedOrderTable = tableService.create(new OrderTableDto(false));
+        OrderDto expectedOrder = orderService.create(new OrderDto(expectedOrderTable.getId(), Collections.singletonList(new OrderLineItemDto(1L, 1L))));
         //when
-        final Order actual = orderService.changeOrderStatus(order.getId(), OrderFixture.MEAL_STATUS);
+        OrderDto actual = orderService.changeOrderStatus(expectedOrder.getId(), new OrderDto(OrderStatus.MEAL));
         //then
-        assertThat(actual.getOrderStatus()).isEqualTo(OrderStatus.MEAL.name());
+        assertThat(actual.getOrderStatus()).isEqualTo(OrderStatus.MEAL);
     }
+
 
     @DisplayName("주문 상태 수정 - 실패 - 주문이 존재하지 않음")
     @Test
@@ -154,7 +110,7 @@ class OrderServiceTest {
         //given
         //when
         //then
-        assertThatThrownBy(() -> orderService.changeOrderStatus(OrderFixture.FIRST_TABLE_후라이드치킨_하나_NO_KEY.getId(), OrderFixture.MEAL_STATUS))
+        assertThatThrownBy(() -> orderService.changeOrderStatus(0L, new OrderDto(OrderStatus.MEAL)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -162,10 +118,12 @@ class OrderServiceTest {
     @Test
     void changeOrderStatusFailureOrderStatusCompletion() {
         //given
+        OrderTableDto expectedOrderTable = tableService.create(new OrderTableDto(false));
+        OrderDto expectedOrder = orderService.create(new OrderDto(expectedOrderTable.getId(), Collections.singletonList(new OrderLineItemDto(1L, 1L))));
+        orderService.changeOrderStatus(expectedOrder.getId(), new OrderDto(OrderStatus.COMPLETION));
         //when
-        orderService.changeOrderStatus(order.getId(), OrderFixture.COMPLETION_STATUS);
         //then
-        assertThatThrownBy(() -> orderService.changeOrderStatus(OrderFixture.FIRST_TABLE_후라이드치킨_하나_NO_KEY.getId(), OrderFixture.MEAL_STATUS))
+        assertThatThrownBy(() -> orderService.changeOrderStatus(expectedOrder.getId(), new OrderDto(OrderStatus.COMPLETION)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

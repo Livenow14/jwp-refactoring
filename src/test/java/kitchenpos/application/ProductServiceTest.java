@@ -1,19 +1,9 @@
 package kitchenpos.application;
 
 import kitchenpos.CustomParameterizedTest;
-import kitchenpos.domain.Product;
-import kitchenpos.fixture.ProductFixture;
-import org.assertj.core.data.Percentage;
+import kitchenpos.ui.dto.ProductDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.params.aggregator.AggregateWith;
-import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
-import org.junit.jupiter.params.aggregator.ArgumentsAggregationException;
-import org.junit.jupiter.params.aggregator.ArgumentsAggregator;
-import org.junit.jupiter.params.converter.ArgumentConversionException;
-import org.junit.jupiter.params.converter.ConvertWith;
-import org.junit.jupiter.params.converter.SimpleArgumentConverter;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,33 +26,36 @@ class ProductServiceTest {
     @DisplayName("상품 저장 - 성공")
     @CustomParameterizedTest
     @CsvSource(value = {"후라이드치킨, 16000.00", "후라이드치킨, 16000.00", "간장치킨, 17000.00"}, delimiter = ',')
-    void create(@AggregateWith(ProductAggregator.class) Product expect) {
+    void create(String name, BigDecimal price) {
         //given
+        ProductDto expected = new ProductDto(name, price);
         //when
-        final Product actual = productService.create(expect);
+        ProductDto actual = productService.create(expected);
         //then
-        assertThat(actual).usingRecursiveComparison().ignoringFields("id").isEqualTo(expect);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("id").isEqualTo(expected);
     }
 
     @DisplayName("상품 저장 - 실패 - 상품이 가격이 null")
     @CustomParameterizedTest
     @ValueSource(strings = {"후라이드치킨", "후라이드치킨", "간장치킨"})
-    void createFailureWhenNullPrice(@ConvertWith(ProductConverter.class) Product product) {
+    void createFailureWhenNullPrice(String name) {
         //given
+        ProductDto expected = new ProductDto(name, null);
         //when
         //then
-        assertThatThrownBy(() -> productService.create(product))
+        assertThatThrownBy(() -> productService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @DisplayName("상품 저장 - 실패 - 상품이 가격이 음수")
     @CustomParameterizedTest
     @CsvSource(value = {"후라이드치킨, -1", "후라이드치킨, -0.1", "간장치킨, -0.999"}, delimiter = ',')
-    void createFailure(@ConvertWith(ProductConverter.class) Product product) {
+    void createFailure(String name, BigDecimal price) {
         //given
+        ProductDto expected = new ProductDto(name, price);
         //when
         //then
-        assertThatThrownBy(() -> productService.create(product))
+        assertThatThrownBy(() -> productService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -71,29 +64,8 @@ class ProductServiceTest {
     void findAll() {
         //given
         //when
-        final List<Product> list = productService.list();
+        final List<ProductDto> actual = productService.list();
         //then
-        assertThat(list).extracting(Product::getName)
-                .containsAnyElementsOf(ProductFixture.productsName());
-    }
-
-    static class ProductConverter extends SimpleArgumentConverter {
-        @Override
-        protected Object convert(Object source, Class<?> targetType) throws ArgumentConversionException {
-            assertThat(targetType).isEqualTo(Product.class);
-            final Product product = new Product();
-            product.setName(source.toString());
-            return product;
-        }
-    }
-
-    static class ProductAggregator implements ArgumentsAggregator {
-        @Override
-        public Object aggregateArguments(ArgumentsAccessor accessor, ParameterContext context) throws ArgumentsAggregationException {
-            final Product product = new Product();
-            product.setName(accessor.getString(0));
-            product.setPrice(new BigDecimal(accessor.getString(1)));
-            return product;
-        }
+        assertThat(actual).isNotEmpty();
     }
 }

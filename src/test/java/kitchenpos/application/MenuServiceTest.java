@@ -1,20 +1,12 @@
 package kitchenpos.application;
 
 import kitchenpos.CustomParameterizedTest;
-import kitchenpos.domain.Menu;
-import kitchenpos.domain.MenuProduct;
-import kitchenpos.fixture.MenuFixture;
-import kitchenpos.fixture.MenuProductFixture;
-import kitchenpos.fixture.ProductFixture;
+import kitchenpos.dao.ProductRepository;
+import kitchenpos.domain.Product;
+import kitchenpos.ui.dto.MenuDto;
+import kitchenpos.ui.dto.MenuProductDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.params.aggregator.AggregateWith;
-import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
-import org.junit.jupiter.params.aggregator.ArgumentsAggregationException;
-import org.junit.jupiter.params.aggregator.ArgumentsAggregator;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,41 +24,38 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Transactional
 @SpringBootTest
 class MenuServiceTest {
+    private static final MenuDto 후라이드치킨;
+    private static final MenuProductDto MENU_PRODUCT_DTO;
+
+    static {
+        MENU_PRODUCT_DTO = new MenuProductDto(1L, 2L);
+        후라이드치킨 = new MenuDto("후라이드치킨", new BigDecimal(19000), 1L, Collections.singletonList(MENU_PRODUCT_DTO));
+    }
+
     @Autowired
     private MenuService menuService;
 
-    private static Stream<Arguments> create() {
-        return Stream.of(
-                Arguments.of(MenuFixture.후라이드치킨_NO_KEY.getName(), MenuFixture.후라이드치킨_NO_KEY.getPrice(),
-                        MenuFixture.후라이드치킨_NO_KEY.getMenuGroupId(), MenuFixture.후라이드치킨_NO_KEY.getMenuProducts()),
-                Arguments.of(MenuFixture.후라이드치킨_NO_KEY.getName(), MenuFixture.후라이드치킨_NO_KEY.getPrice(),
-                        MenuFixture.후라이드치킨_NO_KEY.getMenuGroupId(), MenuFixture.후라이드치킨_NO_KEY.getMenuProducts())
-        );
-    }
+    @Autowired
+    private ProductRepository productRepository;
 
     @DisplayName("메뉴 저장 - 성공")
-    @CustomParameterizedTest
-    @MethodSource("create")
-    void create(@AggregateWith(MenuAggregator.class) Menu menu) {
+    @Test
+    void create() {
         //given
         //when
-        final Menu actual = menuService.create(menu);
+        final MenuDto actual = menuService.create(후라이드치킨);
         //then
-        assertThat(actual).usingRecursiveComparison().ignoringFields("id", "menuProducts.seq").isEqualTo(menu);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("id", "menuProducts").isEqualTo(후라이드치킨);
     }
 
     @DisplayName("메뉴 저장 - 실패 - 메뉴의 가격이 null")
     @Test
     void createFailureWhenPriceNull() {
         //given
-        final Menu menu = new Menu();
-        menu.setName(MenuFixture.후라이드치킨_NO_KEY.getName());
-        menu.setPrice(null);
-        menu.setMenuGroupId(MenuFixture.후라이드치킨_NO_KEY.getMenuGroupId());
-        menu.setMenuProducts(MenuFixture.후라이드치킨_NO_KEY.getMenuProducts());
+        MenuDto expected = new MenuDto(후라이드치킨.getName(), null, 후라이드치킨.getMenuGroupId(), 후라이드치킨.getMenuProducts());
         //when
         //then
-        assertThatThrownBy(() -> menuService.create(menu))
+        assertThatThrownBy(() -> menuService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -75,16 +63,13 @@ class MenuServiceTest {
     @Test
     void createFailureWhenPriceMinus() {
         //given
-        final Menu menu = new Menu();
-        menu.setName(MenuFixture.후라이드치킨_NO_KEY.getName());
-        menu.setPrice(new BigDecimal("-1"));
-        menu.setMenuGroupId(MenuFixture.후라이드치킨_NO_KEY.getMenuGroupId());
-        menu.setMenuProducts(MenuFixture.후라이드치킨_NO_KEY.getMenuProducts());
+        MenuDto expected = new MenuDto(후라이드치킨.getName(), new BigDecimal("-1"), 후라이드치킨.getMenuGroupId(), 후라이드치킨.getMenuProducts());
         //when
         //then
-        assertThatThrownBy(() -> menuService.create(menu))
+        assertThatThrownBy(() -> menuService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
 
     @DisplayName("메뉴 저장 - 실패 - 메뉴그룹이 존재하지 않음")
     @CustomParameterizedTest
@@ -92,14 +77,10 @@ class MenuServiceTest {
     @ValueSource(longs = {0L, -1L})
     void createFailureWhenNotFoundMenuGroup(Long menuGroupId) {
         //given
-        final Menu menu = new Menu();
-        menu.setName(MenuFixture.후라이드치킨_NO_KEY.getName());
-        menu.setPrice(MenuFixture.후라이드치킨_NO_KEY.getPrice());
-        menu.setMenuGroupId(menuGroupId);
-        menu.setMenuProducts(MenuFixture.후라이드치킨_NO_KEY.getMenuProducts());
+        MenuDto expected = new MenuDto(후라이드치킨.getName(), 후라이드치킨.getPrice(), menuGroupId, 후라이드치킨.getMenuProducts());
         //when
         //then
-        assertThatThrownBy(() -> menuService.create(menu))
+        assertThatThrownBy(() -> menuService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -109,18 +90,12 @@ class MenuServiceTest {
     @ValueSource(longs = {0L, -1L})
     void createFailureWhenNotFoundMenuGroupProduct(Long productId) {
         //given
-        final MenuProduct menuProduct = new MenuProduct();
-        menuProduct.setMenuId(MenuProductFixture.후라이드치킨_후라이드치킨_NO_KEY.getMenuId());
-        menuProduct.setProductId(productId);
-        menuProduct.setQuantity(MenuProductFixture.후라이드치킨_후라이드치킨_NO_KEY.getQuantity());
-        final Menu menu = new Menu();
-        menu.setName(MenuFixture.후라이드치킨_NO_KEY.getName());
-        menu.setPrice(MenuFixture.후라이드치킨_NO_KEY.getPrice());
-        menu.setMenuGroupId(MenuFixture.후라이드치킨_NO_KEY.getMenuGroupId());
-        menu.setMenuProducts(Collections.singletonList(menuProduct));
+        MenuDto expected = new MenuDto(후라이드치킨.getName(), 후라이드치킨.getPrice(),
+                후라이드치킨.getMenuGroupId(), Collections.singletonList(new MenuProductDto(productId, 2L))
+        );
         //when
         //then
-        assertThatThrownBy(() -> menuService.create(menu))
+        assertThatThrownBy(() -> menuService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -128,17 +103,14 @@ class MenuServiceTest {
     @Test
     void createFailureWhenMenuPriceOverThanProducePriceMultiQuantity() {
         //given
-        final Menu menu = new Menu();
-        menu.setName(MenuFixture.후라이드치킨_NO_KEY.getName());
-        menu.setPrice(ProductFixture.후라이드치킨.getPrice()
-                .multiply(new BigDecimal(MenuProductFixture.후라이드후라이드_후라이드치킨_NO_KEY.getQuantity()))
-                .add(BigDecimal.ONE)
-        );
-        menu.setMenuGroupId(MenuFixture.후라이드치킨_NO_KEY.getMenuGroupId());
-        menu.setMenuProducts(MenuFixture.후라이드치킨_NO_KEY.getMenuProducts());
+        Product foundProduct = productRepository.findById(MENU_PRODUCT_DTO.getProductId()).get();
+        BigDecimal expectPrice = new BigDecimal(MENU_PRODUCT_DTO.getQuantity())
+                .multiply(foundProduct.getPrice())
+                .add(BigDecimal.ONE);
+        MenuDto expected = new MenuDto(후라이드치킨.getName(), expectPrice, 후라이드치킨.getMenuGroupId(), 후라이드치킨.getMenuProducts());
         //when
         //then
-        assertThatThrownBy(() -> menuService.create(menu))
+        assertThatThrownBy(() -> menuService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -147,21 +119,8 @@ class MenuServiceTest {
     void findAll() {
         //given
         //when
-        final List<Menu> actual = menuService.list();
+        final List<MenuDto> actual = menuService.list();
         //then
-        assertThat(actual).extracting(Menu::getName)
-                .containsAnyElementsOf(MenuFixture.menusName());
-    }
-
-    private static class MenuAggregator implements ArgumentsAggregator {
-        @Override
-        public Object aggregateArguments(ArgumentsAccessor accessor, ParameterContext context) throws ArgumentsAggregationException {
-            final Menu menu = new Menu();
-            menu.setName(accessor.getString(0));
-            menu.setPrice(accessor.get(1, BigDecimal.class));
-            menu.setMenuGroupId(accessor.getLong(2));
-            menu.setMenuProducts(accessor.get(3, List.class));
-            return menu;
-        }
+        assertThat(actual).isNotEmpty();
     }
 }

@@ -5,6 +5,8 @@ import kitchenpos.dao.OrderTableRepository;
 import kitchenpos.domain.OrderStatus;
 import kitchenpos.domain.OrderTable;
 import kitchenpos.ui.dto.OrderTableDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TableService {
+    private static final Logger log = LoggerFactory.getLogger(TableService.class);
+
     private final OrderRepository orderRepository;
     private final OrderTableRepository orderTableRepository;
 
@@ -41,11 +45,13 @@ public class TableService {
                 .orElseThrow(IllegalArgumentException::new);
 
         if (Objects.nonNull(savedOrderTable.getTableGroup())) {
+            log.info("테이블 그룹으로 설정되어있습니다.");
             throw new IllegalArgumentException();
         }
 
         if (orderRepository.existsByOrderTableIdAndOrderStatusIn(
                 orderTableId, Arrays.asList(OrderStatus.COOKING, OrderStatus.MEAL))) {
+            log.info("주문테이블에 할당된 주문의 상태가 COMPLETITON이 아닙니다.");
             throw new IllegalArgumentException();
         }
 
@@ -59,6 +65,7 @@ public class TableService {
         final int numberOfGuests = orderTableDto.getNumberOfGuests();
 
         if (numberOfGuests < 0) {
+            log.info("손님의 수는 음수일 수 없습니다.");
             throw new IllegalArgumentException();
         }
 
@@ -66,6 +73,7 @@ public class TableService {
                 .orElseThrow(IllegalArgumentException::new);
 
         if (savedOrderTable.isEmpty()) {
+            log.info("주문테이블이 비어있습니다.");
             throw new IllegalArgumentException();
         }
 

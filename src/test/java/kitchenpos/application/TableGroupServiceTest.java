@@ -1,22 +1,15 @@
 package kitchenpos.application;
 
-import kitchenpos.CustomParameterizedTest;
-import kitchenpos.dao.OrderTableDao;
+import kitchenpos.dao.OrderTableRepository;
+import kitchenpos.domain.OrderStatus;
 import kitchenpos.domain.OrderTable;
-import kitchenpos.domain.TableGroup;
-import kitchenpos.fixture.OrderFixture;
-import kitchenpos.fixture.OrderTableFixture;
-import kitchenpos.fixture.TableGroupFixture;
+import kitchenpos.ui.dto.OrderDto;
+import kitchenpos.ui.dto.OrderLineItemDto;
+import kitchenpos.ui.dto.OrderTableDto;
+import kitchenpos.ui.dto.TableGroupDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.params.aggregator.AggregateWith;
-import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
-import org.junit.jupiter.params.aggregator.ArgumentsAggregationException;
-import org.junit.jupiter.params.aggregator.ArgumentsAggregator;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +18,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,45 +32,38 @@ class TableGroupServiceTest {
     private TableGroupService tableGroupService;
 
     @Autowired
-    private OrderTableDao orderTableDao;
+    private TableService tableService;
 
     @Autowired
     private OrderService orderService;
 
-    private OrderTable firstOrderTableEmptyTrue;
-    private OrderTable secondOrderTableEmptyTrue;
-    private OrderTable orderTableEmptyFalse;
-    private OrderTable orderTableBeforeSave;
+    @Autowired
+    private OrderTableRepository orderTableRepository;
 
-    private static Stream<Arguments> create() {
-        return Stream.of(
-                Arguments.of(NOW, TableGroupFixture.FIRST_SECOND_TABLE_BEFORE_SAVE.getOrderTables())
-        );
-    }
+    private OrderTableDto firstOrderTableDto;
+    private OrderTableDto secondOrderTableDto;
 
     @BeforeEach
     void setUp() {
-        firstOrderTableEmptyTrue = orderTableDao.save(OrderTableFixture.TABLE_BEFORE_SAVE);
-        secondOrderTableEmptyTrue = orderTableDao.save(OrderTableFixture.TABLE_BEFORE_SAVE);
-        orderTableEmptyFalse = orderTableDao.save(OrderTableFixture.TABLE_BEFORE_SAVE_EMPTY_FALSE);
-        orderTableBeforeSave = OrderTableFixture.TABLE_BEFORE_SAVE;
+        firstOrderTableDto = tableService.create(new OrderTableDto(true));
+        secondOrderTableDto = tableService.create(new OrderTableDto(true));
     }
 
     @DisplayName("단체지정 저장 - 성공")
-    @CustomParameterizedTest
-    @MethodSource("create")
-    void create(@AggregateWith(TableGroupAggregator.class) TableGroup tableGroup) {
+    @Test
+    void create() {
         //given
+        TableGroupDto expected = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(secondOrderTableDto.getId())));
         //when
-        final TableGroup actual = tableGroupService.create(tableGroup);
+        TableGroupDto actual = tableGroupService.create(expected);
         //then
         assertThat(actual.getId()).isNotNull();
         assertThat(actual.getCreatedDate()).isAfter(NOW);
         assertThat(actual.getOrderTables())
-                .extracting(OrderTable::isEmpty)
+                .extracting(OrderTableDto::isEmpty)
                 .containsExactly(false, false);
         assertThat(actual.getOrderTables())
-                .extracting(OrderTable::getTableGroupId)
+                .extracting(OrderTableDto::getTableGroupId)
                 .contains(actual.getId());
     }
 
@@ -87,11 +71,10 @@ class TableGroupServiceTest {
     @Test
     void createFailureWhenTableGroupNull() {
         //given
-        final TableGroup tableGroup = new TableGroup();
-        tableGroup.setOrderTables(null);
+        TableGroupDto expected = new TableGroupDto(Collections.emptyList());
         //when
         //then
-        assertThatThrownBy(() -> tableGroupService.create(tableGroup))
+        assertThatThrownBy(() -> tableGroupService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -99,11 +82,10 @@ class TableGroupServiceTest {
     @Test
     void createFailureWhenOrderTableLowerThanTwo() {
         //given
-        final TableGroup tableGroup = new TableGroup();
-        tableGroup.setOrderTables(Collections.singletonList(firstOrderTableEmptyTrue));
+        TableGroupDto expected = new TableGroupDto(Collections.singletonList(new OrderTableDto(firstOrderTableDto.getId())));
         //when
         //then
-        assertThatThrownBy(() -> tableGroupService.create(tableGroup))
+        assertThatThrownBy(() -> tableGroupService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -111,11 +93,10 @@ class TableGroupServiceTest {
     @Test
     void createFailureWhenOrderTableDoesNotMatches() {
         //given
-        final TableGroup tableGroup = new TableGroup();
-        tableGroup.setOrderTables(Arrays.asList(orderTableBeforeSave, firstOrderTableEmptyTrue));
+        TableGroupDto expected = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(0L)));
         //when
         //then
-        assertThatThrownBy(() -> tableGroupService.create(tableGroup))
+        assertThatThrownBy(() -> tableGroupService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -123,11 +104,12 @@ class TableGroupServiceTest {
     @Test
     void createFailureWhenOrderTableEmptyFalse() {
         //given
-        final TableGroup tableGroup = new TableGroup();
-        tableGroup.setOrderTables(Arrays.asList(orderTableEmptyFalse, firstOrderTableEmptyTrue));
+        tableService.changeEmpty(firstOrderTableDto.getId(), new OrderTableDto(false));
+        tableService.changeEmpty(secondOrderTableDto.getId(), new OrderTableDto(false));
+        TableGroupDto expected = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(secondOrderTableDto.getId())));
         //when
         //then
-        assertThatThrownBy(() -> tableGroupService.create(tableGroup))
+        assertThatThrownBy(() -> tableGroupService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -135,12 +117,11 @@ class TableGroupServiceTest {
     @Test
     void createFailureWhenOrderTableAssignTableGroup() {
         //given
-        final TableGroup tableGroup = new TableGroup();
-        tableGroup.setOrderTables(Arrays.asList(firstOrderTableEmptyTrue, secondOrderTableEmptyTrue));
+        TableGroupDto expected = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(secondOrderTableDto.getId())));
         //when
-        tableGroupService.create(tableGroup);
+        tableGroupService.create(expected);
         //then
-        assertThatThrownBy(() -> tableGroupService.create(tableGroup))
+        assertThatThrownBy(() -> tableGroupService.create(expected))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -148,37 +129,42 @@ class TableGroupServiceTest {
     @Test
     void unGroupTableGroup() {
         //given
-        final TableGroup tableGroup = new TableGroup();
-        tableGroup.setOrderTables(Arrays.asList(firstOrderTableEmptyTrue, secondOrderTableEmptyTrue));
+        TableGroupDto requestDto = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(secondOrderTableDto.getId())));
         //when
-        final TableGroup expect = tableGroupService.create(tableGroup);
+        TableGroupDto expect = tableGroupService.create(requestDto);
         tableGroupService.ungroup(expect.getId());
-        final Optional<OrderTable> foundOrderTable = orderTableDao.findById(expect.getOrderTables().get(0).getId());
+        List<OrderTable> actual = orderTableRepository.findAllByTableGroupId(expect.getId());
         //then
-        assertThat(foundOrderTable).isNotEmpty();
-        assertThat(foundOrderTable.get().getTableGroupId()).isNull();
-        assertThat(foundOrderTable.get().isEmpty()).isFalse();
+        assertThat(actual).isEmpty();
+    }
+
+    @DisplayName("단체지정 해제 - 성공 - 주문 이후 단체지정 해제")
+    @Test
+    void unGroupTableGroupAfterOrder() {
+        //given
+        TableGroupDto requestDto = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(secondOrderTableDto.getId())));
+        //when
+        TableGroupDto expect = tableGroupService.create(requestDto);
+        OrderDto orderDto = orderService.create(new OrderDto(firstOrderTableDto.getId(), Collections.singletonList(new OrderLineItemDto(1L, 1L))));
+        orderService.changeOrderStatus(orderDto.getId(), new OrderDto(OrderStatus.COMPLETION));
+        tableGroupService.ungroup(expect.getId());
+        List<OrderTable> actual = orderTableRepository.findAllByTableGroupId(expect.getId());
+        //then
+        assertThat(actual).isEmpty();
     }
 
     @DisplayName("단체지정 해제 - 실패 - 테이블의 주문 상태가 COMPLETION이 아님")
     @Test
     void unGroupTableGroupFailureWhenOrderStatusNotCompletion() {
         //given
+        TableGroupDto requestDto = new TableGroupDto(Arrays.asList(new OrderTableDto(firstOrderTableDto.getId()), new OrderTableDto(secondOrderTableDto.getId())));
         //when
-        final TableGroup expect = tableGroupService.create(TableGroupFixture.FIRST_SECOND_TABLE_BEFORE_SAVE);
-        orderService.create(OrderFixture.FIRST_TABLE_후라이드치킨_하나);
+        TableGroupDto expect = tableGroupService.create(requestDto);
+        OrderDto expected = orderService.create(new OrderDto(firstOrderTableDto.getId(), Collections.singletonList(new OrderLineItemDto(1L, 1L))));
+        orderService.create(expected);
+        //when
         //then
         assertThatThrownBy(() -> tableGroupService.ungroup(expect.getId()))
                 .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    private static class TableGroupAggregator implements ArgumentsAggregator {
-        @Override
-        public Object aggregateArguments(ArgumentsAccessor accessor, ParameterContext context) throws ArgumentsAggregationException {
-            final TableGroup tableGroup = new TableGroup();
-            tableGroup.setCreatedDate(accessor.get(0, LocalDateTime.class));
-            tableGroup.setOrderTables(accessor.get(1, List.class));
-            return tableGroup;
-        }
     }
 }

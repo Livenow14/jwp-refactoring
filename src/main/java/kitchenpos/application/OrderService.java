@@ -10,6 +10,8 @@ import kitchenpos.domain.OrderStatus;
 import kitchenpos.domain.OrderTable;
 import kitchenpos.ui.dto.OrderDto;
 import kitchenpos.ui.dto.OrderLineItemDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private final MenuRepository menuRepository;
     private final OrderRepository orderRepository;
     private final OrderLineItemRepository orderLineItemRepository;
@@ -46,6 +49,7 @@ public class OrderService {
                 .collect(Collectors.toList());
 
         if (CollectionUtils.isEmpty(orderLineItems)) {
+            log.info("주문 항목이 비어있습니다.");
             throw new IllegalArgumentException();
         }
 
@@ -54,6 +58,7 @@ public class OrderService {
                 .collect(Collectors.toList());
 
         if (orderLineItems.size() != menuRepository.countByIdIn(menuIds)) {
+            log.info("저장된 메뉴 수와 요청한 메뉴 수가 다름");
             throw new IllegalArgumentException();
         }
 
@@ -65,6 +70,7 @@ public class OrderService {
                 .orElseThrow(IllegalArgumentException::new);
 
         if (orderTable.isEmpty()) {
+            log.info("주문테이블이 비어있습니다.");
             throw new IllegalArgumentException();
         }
 
@@ -98,6 +104,7 @@ public class OrderService {
                 .orElseThrow(IllegalArgumentException::new);
 
         if (Objects.equals(OrderStatus.COMPLETION, savedOrder.getOrderStatus())) {
+            log.info("이미 주문상태가 COMPLETION입니다.");
             throw new IllegalArgumentException();
         }
 
