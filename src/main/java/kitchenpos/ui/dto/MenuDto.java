@@ -43,8 +43,7 @@ public class MenuDto {
         menu.setId(id);
         menu.setName(name);
         menu.setPrice(price);
-        MenuGroup menuGroup = new MenuGroup();
-        menuGroup.setId(menuGroupId);
+        MenuGroup menuGroup = new MenuGroup(menuGroupId, null);
         menu.setMenuGroup(menuGroup);
 
         List<MenuProduct> collect = menuProducts.stream()

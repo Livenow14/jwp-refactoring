@@ -20,12 +20,12 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("MenuGroupDao 테스트")
+@DisplayName("MenuGroupRepository 테스트")
 @SpringBootTest
 @Transactional
-class MenuGroupDaoTest {
+class MenuGroupRepositoryTest {
     @Autowired
-    private MenuGroupDao menuGroupDao;
+    private MenuGroupRepository menuGroupRepository;
 
     private static Stream<Arguments> saveFailureWhenDbLimit() {
         return Stream.of(
@@ -42,11 +42,10 @@ class MenuGroupDaoTest {
     @MethodSource("saveFailureWhenDbLimit")
     void saveFailureWhenDbLimit(String name) {
         //given
-        final MenuGroup menuGroup = new MenuGroup();
-        menuGroup.setName(name);
+        MenuGroup menuGroup = MenuGroupFixture.creatMenuGroup(name);
         //when
         //then
-        assertThatThrownBy(() -> menuGroupDao.save(menuGroup))
+        assertThatThrownBy(() -> menuGroupRepository.save(menuGroup))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -54,11 +53,13 @@ class MenuGroupDaoTest {
     @Test
     void findById() {
         //given
+        MenuGroup menuGroup = MenuGroupFixture.creatMenuGroup("두마리메뉴");
         //when
-        final Optional<MenuGroup> actual = menuGroupDao.findById(MenuGroupFixture.두마리메뉴.getId());
+        MenuGroup savedMenuGroup = menuGroupRepository.save(menuGroup);
+        final Optional<MenuGroup> actual = menuGroupRepository.findById(savedMenuGroup.getId());
         //then
         assertThat(actual).isNotEmpty();
-        assertThat(actual.get().getName()).isEqualTo(MenuGroupFixture.두마리메뉴.getName());
+        assertThat(actual.get().getName()).isEqualTo(savedMenuGroup.getName());
     }
 
     @DisplayName("메뉴그룹 조회 - 성공 - 저장된 id가 없을때")
@@ -66,7 +67,7 @@ class MenuGroupDaoTest {
     void findByIdWhenNotFound() {
         //given
         //when
-        final Optional<MenuGroup> actual = menuGroupDao.findById(0L);
+        final Optional<MenuGroup> actual = menuGroupRepository.findById(0L);
         //then
         assertThat(actual).isEmpty();
     }
@@ -75,8 +76,10 @@ class MenuGroupDaoTest {
     @Test
     void exitsById() {
         //given
+        MenuGroup menuGroup = MenuGroupFixture.creatMenuGroup("두마리메뉴");
         //when
-        final boolean actual = menuGroupDao.existsById(MenuGroupFixture.두마리메뉴.getId());
+        MenuGroup savedMenuGroup = menuGroupRepository.save(menuGroup);
+        final boolean actual = menuGroupRepository.existsById(savedMenuGroup.getId());
         //then
         assertThat(actual).isTrue();
     }

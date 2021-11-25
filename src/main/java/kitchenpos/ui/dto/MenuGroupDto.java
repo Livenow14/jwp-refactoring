@@ -1,6 +1,5 @@
 package kitchenpos.ui.dto;
 
-import kitchenpos.domain.Menu;
 import kitchenpos.domain.MenuGroup;
 
 public class MenuGroupDto {
@@ -24,9 +23,7 @@ public class MenuGroupDto {
     }
 
     public MenuGroup toEntity() {
-        MenuGroup menuGroup = new MenuGroup();
-        menuGroup.setName(name);
-        return menuGroup;
+        return new MenuGroup(null, name);
     }
 
     public Long getId() {
